@@ -109,11 +109,79 @@ Napi::Object DetectSabotage(const Napi::CallbackInfo& info) {
         double blackoutScore = calculateBlackoutScore(gray);
         double flashScore = calculateFlashScore(gray);
 
+        // Calculate smear score
+        double smearScore = 0.0;
+
+        // Calculate global contrast and brightness
+        cv::Scalar meanIntensity, stddevIntensity;
+        cv::meanStdDev(gray, meanIntensity, stddevIntensity);
+        double brightness = meanIntensity[0];
+        double contrastScore = 100.0 - std::min(100.0, std::max(0.0, (stddevIntensity[0] / 10.0) * 100.0));
+
+        // Calculate edge density
+        cv::Mat edges;
+        cv::Canny(gray, edges, 50, 150);
+        double edgeDensity = cv::countNonZero(edges) / (double)(edges.rows * edges.cols);
+        double edgeScore = 100.0 - std::min(100.0, edgeDensity * 150.0);
+
+        // Calculate intensity histogram
+        cv::Mat hist;
+        int histSize = 256;
+        float range[] = {0, 256};
+        const float* histRange = {range};
+        cv::calcHist(&gray, 1, 0, cv::Mat(), hist, 1, &histSize, &histRange);
+
+        // Calculate percentage of different intensity ranges
+        double darkPixels = 0, midPixels = 0, brightPixels = 0;
+        for (int i = 0; i < 256; i++) {
+            if (i < 85) darkPixels += hist.at<float>(i);
+            else if (i < 170) midPixels += hist.at<float>(i);
+            else brightPixels += hist.at<float>(i);
+        }
+        double totalPixels = gray.rows * gray.cols;
+        double darkPercentage = (darkPixels / totalPixels) * 100.0;
+        double midPercentage = (midPixels / totalPixels) * 100.0;
+        double brightPercentage = (brightPixels / totalPixels) * 100.0;
+
+        // Calculate base characteristics score with adjusted weights
+        double baseScore = (blurScore * 0.5) + (contrastScore * 0.3) + (edgeScore * 0.2);
+
+        // Calculate intensity distribution score with adjusted thresholds
+        double intensityScore = 0.0;
+        
+        // Adjust thresholds based on overall brightness
+        double brightnessFactor = std::min(1.0, brightness / 120.0);
+        double darkThreshold = 8.0 + (brightnessFactor * 3.0);
+        double brightThreshold = 8.0 + ((1.0 - brightnessFactor) * 3.0);
+        double midThreshold = 15.0 + (brightnessFactor * 2.0);
+
+        // Increase sensitivity to bright conditions
+        if (brightness > 120.0) {
+            intensityScore += (brightness - 120.0) * 0.8;
+        }
+
+        if (darkPercentage > darkThreshold) intensityScore += darkPercentage * 0.5;
+        if (brightPercentage > brightThreshold) intensityScore += brightPercentage * 0.5;
+        if (midPercentage > midThreshold) intensityScore += midPercentage * 0.3;
+
+        // Calculate combined score
+        double combinedScore = baseScore + (intensityScore * 0.4);
+
+        // Invert the scoring logic - higher scores for smears, lower for normal images
+        if (combinedScore > 20.0) { // Lower threshold to catch more smears
+            // Give high scores for smears
+            smearScore = std::min(100.0, 20.0 + (combinedScore - 20.0) * 1.5);
+        } else {
+            // Give low scores for normal images
+            smearScore = combinedScore * 0.5;
+        }
+
         // Create result object
         Napi::Object result = Napi::Object::New(env);
         result.Set("blurScore", Napi::Number::New(env, blurScore));
         result.Set("blackoutScore", Napi::Number::New(env, blackoutScore));
         result.Set("flashScore", Napi::Number::New(env, flashScore));
+        result.Set("smearScore", Napi::Number::New(env, smearScore));
 
         return result;
     }
@@ -169,6 +237,118 @@ Napi::Object DetectSceneChange(const Napi::CallbackInfo& info) {
     }
 }
 
+Napi::Object DetectSmear(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::Object result = Napi::Object::New(env);
+
+    // Validate input
+    if (info.Length() < 1) {
+        Napi::Error::New(env, "Expected an image path or buffer").ThrowAsJavaScriptException();
+        result.Set("error", Napi::String::New(env, "Expected an image path or buffer"));
+        return result;
+    }
+
+    // Read input image
+    cv::Mat image;
+    if (info[0].IsString()) {
+        std::string imagePath = info[0].As<Napi::String>().Utf8Value();
+        image = cv::imread(imagePath);
+    } else if (info[0].IsBuffer()) {
+        Napi::Buffer<uint8_t> buffer = info[0].As<Napi::Buffer<uint8_t>>();
+        std::vector<uint8_t> vec(buffer.Data(), buffer.Data() + buffer.Length());
+        image = cv::imdecode(vec, cv::IMREAD_COLOR);
+    } else {
+        Napi::Error::New(env, "Input must be a string (file path) or buffer").ThrowAsJavaScriptException();
+        result.Set("error", Napi::String::New(env, "Input must be a string (file path) or buffer"));
+        return result;
+    }
+
+    if (image.empty()) {
+        Napi::Error::New(env, "Could not read image").ThrowAsJavaScriptException();
+        result.Set("error", Napi::String::New(env, "Could not read image"));
+        return result;
+    }
+
+    // Convert to grayscale
+    cv::Mat gray;
+    cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
+
+    // Calculate global blur score
+    double blurScore = calculateBlurScore(gray);
+
+    // Calculate global contrast and brightness
+    cv::Scalar meanIntensity, stddevIntensity;
+    cv::meanStdDev(gray, meanIntensity, stddevIntensity);
+    double brightness = meanIntensity[0];
+    double contrastScore = 100.0 - std::min(100.0, std::max(0.0, (stddevIntensity[0] / 10.0) * 100.0));
+
+    // Calculate edge density
+    cv::Mat edges;
+    cv::Canny(gray, edges, 50, 150);
+    double edgeDensity = cv::countNonZero(edges) / (double)(edges.rows * edges.cols);
+    double edgeScore = 100.0 - std::min(100.0, edgeDensity * 150.0);
+
+    // Calculate intensity histogram
+    cv::Mat hist;
+    int histSize = 256;
+    float range[] = {0, 256};
+    const float* histRange = {range};
+    cv::calcHist(&gray, 1, 0, cv::Mat(), hist, 1, &histSize, &histRange);
+
+    // Calculate percentage of different intensity ranges
+    double darkPixels = 0, midPixels = 0, brightPixels = 0;
+    for (int i = 0; i < 256; i++) {
+        if (i < 85) darkPixels += hist.at<float>(i);
+        else if (i < 170) midPixels += hist.at<float>(i);
+        else brightPixels += hist.at<float>(i);
+    }
+    double totalPixels = gray.rows * gray.cols;
+    double darkPercentage = (darkPixels / totalPixels) * 100.0;
+    double midPercentage = (midPixels / totalPixels) * 100.0;
+    double brightPercentage = (brightPixels / totalPixels) * 100.0;
+
+    // Calculate smear score based on combined characteristics
+    double smearScore = 0.0;
+
+    // Calculate base characteristics score with adjusted weights
+    double baseScore = (blurScore * 0.5) + (contrastScore * 0.3) + (edgeScore * 0.2);
+
+    // Calculate intensity distribution score with adjusted thresholds
+    double intensityScore = 0.0;
+    
+    // Adjust thresholds based on overall brightness
+    double brightnessFactor = std::min(1.0, brightness / 120.0);
+    double darkThreshold = 8.0 + (brightnessFactor * 3.0);
+    double brightThreshold = 8.0 + ((1.0 - brightnessFactor) * 3.0);
+    double midThreshold = 15.0 + (brightnessFactor * 2.0);
+
+    // Increase sensitivity to bright conditions
+    if (brightness > 120.0) {
+        intensityScore += (brightness - 120.0) * 0.8;
+    }
+
+    if (darkPercentage > darkThreshold) intensityScore += darkPercentage * 0.5;
+    if (brightPercentage > brightThreshold) intensityScore += brightPercentage * 0.5;
+    if (midPercentage > midThreshold) intensityScore += midPercentage * 0.3;
+
+    // Calculate combined score
+    double combinedScore = baseScore + (intensityScore * 0.4);
+
+    // Invert the scoring logic - higher scores for smears, lower for normal images
+    if (combinedScore > 20.0) { // Lower threshold to catch more smears
+        // Give high scores for smears
+        smearScore = std::min(100.0, 20.0 + (combinedScore - 20.0) * 1.5);
+    } else {
+        // Give low scores for normal images
+        smearScore = combinedScore * 0.5;
+    }
+
+    // Set result property
+    result.Set("smearScore", Napi::Number::New(env, smearScore));
+
+    return result;
+}
+
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
     exports.Set(
         Napi::String::New(env, "detectSabotage"),
@@ -177,6 +357,10 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
     exports.Set(
         Napi::String::New(env, "detectSceneChange"),
         Napi::Function::New(env, DetectSceneChange)
+    );
+    exports.Set(
+        Napi::String::New(env, "detectSmear"),
+        Napi::Function::New(env, DetectSmear)
     );
     return exports;
 }

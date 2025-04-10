@@ -1,15 +1,16 @@
 const { Worker, isMainThread, parentPort } = require('worker_threads');
-const { detectSabotage, detectSceneChange } = require('./build/Release/camera_sabotage_detector.node');
 
 if (!isMainThread) {
   // Worker thread code
+  const { detectSabotage: nativeDetectSabotage, detectSceneChange: nativeDetectSceneChange } = require('./build/Release/camera_sabotage_detector');
+
   parentPort.on('message', async (message) => {
     try {
       let result;
       if (message.type === 'sabotage') {
-        result = detectSabotage(message.input);
+        result = nativeDetectSabotage(message.input);
       } else if (message.type === 'sceneChange') {
-        result = detectSceneChange(message.current, message.previous);
+        result = nativeDetectSceneChange(message.current, message.previous);
       }
       parentPort.postMessage({ success: true, result });
     } catch (error) {
@@ -26,8 +27,9 @@ if (!isMainThread) {
  *   - blurScore {number} - 0-100 score indicating blur level
  *   - blackoutScore {number} - 0-100 score indicating blackout level
  *   - flashScore {number} - 0-100 score indicating flash level
+ *   - smearScore {number} - 0-100 score indicating smear level
  */
-async function detectImageSabotage(input) {
+async function detectSabotage(input) {
   return new Promise((resolve, reject) => {
     const worker = new Worker(__filename);
 
@@ -56,7 +58,7 @@ async function detectImageSabotage(input) {
  * @returns {Promise<Object>} Promise resolving to an object containing:
  *   - sceneChangeScore {number} - 0-100 score indicating scene change level
  */
-async function detectImageSceneChange(current, previous) {
+async function detectSceneChange(current, previous) {
   return new Promise((resolve, reject) => {
     const worker = new Worker(__filename);
 
@@ -79,6 +81,6 @@ async function detectImageSceneChange(current, previous) {
 }
 
 module.exports = {
-  detectSabotage: detectImageSabotage,
-  detectSceneChange: detectImageSceneChange,
+  detectSabotage,
+  detectSceneChange,
 };
