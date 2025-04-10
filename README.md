@@ -12,16 +12,28 @@ A Node.js library for detecting camera sabotage and scene changes in images and 
   - Frame-to-frame comparison
   - Change score calculation
 
+## System Requirements
+
+- OpenCV 4.x must be installed on your system
+  - On macOS: `brew install opencv`
+  - On Linux: `sudo apt-get install libopencv-dev` (Ubuntu/Debian)
+- Node.js 14.x or higher
+- Native dependencies (will be installed automatically)
+
+## Platform Compatibility
+
+This package has been tested and is supported on:
+
+- macOS (Intel and Apple Silicon)
+- Linux (Ubuntu/Debian)
+
+Windows support is not currently available.
+
 ## Installation
 
 ```bash
 npm install camera-sabotage-detector
 ```
-
-## Requirements
-
-- Node.js 14.x or higher
-- Native dependencies (will be installed automatically)
 
 ## Usage
 
