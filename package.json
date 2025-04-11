@@ -1,6 +1,6 @@
 {
     "name": "camera-sabotage-detector",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "description": "A Node.js native addon for detecting various types of camera sabotage including blur, blackout, covered camera, flash, and scene tampering",
     "main": "index.js",
     "scripts": {
@@ -20,12 +20,12 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/maksym-shyshko/camera-sabotage-detector.git"
+        "url": "https://github.com/maxim729467/camera-sabotage-detector.git"
     },
     "bugs": {
-        "url": "https://github.com/maksym-shyshko/camera-sabotage-detector/issues"
+        "url": "https://github.com/maxim729467/camera-sabotage-detector/issues"
     },
-    "homepage": "https://github.com/maksym-shyshko/camera-sabotage-detector#readme",
+    "homepage": "https://github.com/maxim729467/camera-sabotage-detector#readme",
     "dependencies": {
         "node-addon-api": "^7.1.0"
     },
