@@ -8,18 +8,16 @@ cv::Mat readImageFromBuffer(const Napi::Buffer<uint8_t>& buffer) {
     return cv::imdecode(vec, cv::IMREAD_GRAYSCALE);
 }
 
-// Helper function to calculate blur score
-double calculateBlurScore(const cv::Mat& gray) {
+// Helper function to calculate defocus score
+double calculateDefocusScore(const cv::Mat& gray) {
     cv::Mat laplacian;
     cv::Laplacian(gray, laplacian, CV_64F);
+    
     cv::Scalar mean, stddev;
     cv::meanStdDev(laplacian, mean, stddev);
-    double variance = stddev[0] * stddev[0];
-    const double MIN_VARIANCE = 0.0;
-    const double MAX_VARIANCE = 1000.0;
-    return 100.0 - std::min(100.0, std::max(0.0, 
-        ((variance - MIN_VARIANCE) / (MAX_VARIANCE - MIN_VARIANCE)) * 100.0
-    ));
+    
+    double variance = stddev.val[0] * stddev.val[0];
+    return 100.0 - std::min(100.0, variance / 10.0);
 }
 
 // Helper function to calculate blackout score
@@ -105,7 +103,7 @@ Napi::Object DetectSabotage(const Napi::CallbackInfo& info) {
         }
 
         // Calculate all scores
-        double blurScore = calculateBlurScore(gray);
+        double defocusScore = calculateDefocusScore(gray);
         double blackoutScore = calculateBlackoutScore(gray);
         double flashScore = calculateFlashScore(gray);
 
@@ -144,7 +142,7 @@ Napi::Object DetectSabotage(const Napi::CallbackInfo& info) {
         double brightPercentage = (brightPixels / totalPixels) * 100.0;
 
         // Calculate base characteristics score with adjusted weights
-        double baseScore = (blurScore * 0.5) + (contrastScore * 0.3) + (edgeScore * 0.2);
+        double baseScore = (defocusScore * 0.5) + (contrastScore * 0.3) + (edgeScore * 0.2);
 
         // Calculate intensity distribution score with adjusted thresholds
         double intensityScore = 0.0;
@@ -178,7 +176,7 @@ Napi::Object DetectSabotage(const Napi::CallbackInfo& info) {
 
         // Create result object
         Napi::Object result = Napi::Object::New(env);
-        result.Set("blurScore", Napi::Number::New(env, blurScore));
+        result.Set("defocusScore", Napi::Number::New(env, defocusScore));
         result.Set("blackoutScore", Napi::Number::New(env, blackoutScore));
         result.Set("flashScore", Napi::Number::New(env, flashScore));
         result.Set("smearScore", Napi::Number::New(env, smearScore));
@@ -273,8 +271,8 @@ Napi::Object DetectSmear(const Napi::CallbackInfo& info) {
     cv::Mat gray;
     cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
 
-    // Calculate global blur score
-    double blurScore = calculateBlurScore(gray);
+    // Calculate global defocus score
+    double defocusScore = calculateDefocusScore(gray);
 
     // Calculate global contrast and brightness
     cv::Scalar meanIntensity, stddevIntensity;
@@ -311,7 +309,7 @@ Napi::Object DetectSmear(const Napi::CallbackInfo& info) {
     double smearScore = 0.0;
 
     // Calculate base characteristics score with adjusted weights
-    double baseScore = (blurScore * 0.5) + (contrastScore * 0.3) + (edgeScore * 0.2);
+    double baseScore = (defocusScore * 0.5) + (contrastScore * 0.3) + (edgeScore * 0.2);
 
     // Calculate intensity distribution score with adjusted thresholds
     double intensityScore = 0.0;

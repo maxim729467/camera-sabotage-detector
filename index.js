@@ -24,7 +24,7 @@ if (!isMainThread) {
  * Detects various types of camera sabotage in an image.
  * @param {string|Buffer} input - Image file path or buffer containing image data
  * @returns {Promise<Object>} Promise resolving to an object containing:
- *   - blurScore {number} - 0-100 score indicating blur level
+ *   - defocusScore {number} - 0-100 score indicating defocus level
  *   - blackoutScore {number} - 0-100 score indicating blackout level
  *   - flashScore {number} - 0-100 score indicating flash level
  *   - smearScore {number} - 0-100 score indicating smear level

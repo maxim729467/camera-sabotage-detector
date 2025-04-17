@@ -4,7 +4,7 @@ A Node.js module for detecting various types of camera sabotage and anomalies in
 
 ## Features
 
-- **Blur Detection**: Identifies when the camera is out of focus or has been smeared
+- **Defocus Detection**: Identifies when the camera is out of focus or has been smeared
 - **Blackout Detection**: Detects when the camera has been covered or is experiencing low light conditions
 - **Flash Detection**: Identifies sudden bright flashes that might indicate tampering
 - **Scene Change Detection**: Monitors for significant changes between consecutive frames
@@ -28,7 +28,7 @@ const result = detectSabotage(imageBuffer);
 
 console.log(result);
 // {
-//   blurScore: 0-100,      // Higher score means more blur
+//   defocusScore: 0-100,      // Higher score means more defocus
 //   blackoutScore: 0-100,  // Higher score means more blackout
 //   flashScore: 0-100,     // Higher score means more flash
 //   smearScore: 0-100      // Higher score means more severe smears
@@ -47,7 +47,7 @@ console.log(sceneChangeResult);
 
 ## Score Interpretation
 
-- **blurScore**: Higher scores (closer to 100) indicate more severe blur
+- **defocusScore**: Higher scores (closer to 100) indicate more severe defocus
 - **blackoutScore**: Higher scores (closer to 100) indicate more severe blackout
 - **flashScore**: Higher scores (closer to 100) indicate more severe flash
 - **sceneChangeScore**: Higher scores (closer to 100) indicate more significant scene changes

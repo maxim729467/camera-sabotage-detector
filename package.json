@@ -1,19 +1,19 @@
 {
     "name": "camera-sabotage-detector",
     "version": "1.0.4",
-    "description": "A Node.js native addon for detecting various types of camera sabotage including blur, blackout, covered camera, flash, and scene tampering",
+    "description": "A Node.js native addon for detecting various types of camera sabotage including defocus, blackout, covered camera, flash, and scene tampering",
     "main": "index.js",
     "scripts": {
         "install": "node-gyp rebuild"
     },
     "keywords": [
-        "image",
-        "blur",
-        "detection",
-        "sabotage",
-        "security",
-        "opencv",
         "camera",
+        "sabotage",
+        "defocus",
+        "blackout",
+        "flash",
+        "scene-change",
+        "security",
         "monitoring"
     ],
     "author": "maksym.shyshko@gmail.com",
