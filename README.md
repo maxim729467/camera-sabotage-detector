@@ -22,9 +22,9 @@ npm install camera-sabotage-detector
 const { detectSabotage, detectSceneChange } = require('camera-sabotage-detector');
 
 // Detect various types of sabotage in a single frame
-const result = detectSabotage('path/to/image.jpg');
+const result = await detectSabotage('path/to/image.jpg');
 // or
-const result = detectSabotage(imageBuffer);
+const result = await detectSabotage(imageBuffer);
 
 console.log(result);
 // {
@@ -35,14 +35,19 @@ console.log(result);
 // }
 
 // Detect scene changes between consecutive frames
-const sceneChangeResult = detectSceneChange('path/to/current.jpg', 'path/to/previous.jpg');
+const sceneChangeResult = await detectSceneChange('path/to/current.jpg', 'path/to/previous.jpg');
 // or
-const sceneChangeResult = detectSceneChange(currentBuffer, previousBuffer);
+const sceneChangeResult = await detectSceneChange(currentBuffer, previousBuffer);
 
 console.log(sceneChangeResult);
 // {
 //   sceneChangeScore: 0-100  // Higher score means more change
 // }
+
+// You can also use .then() syntax
+detectSabotage(imageBuffer)
+  .then((result) => console.log(result))
+  .catch((error) => console.error(error));
 ```
 
 ## Score Interpretation

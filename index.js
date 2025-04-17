@@ -21,7 +21,8 @@ if (!isMainThread) {
 }
 
 /**
- * Detects various types of camera sabotage in an image.
+ * Asynchronously detects various types of camera sabotage in an image.
+ * The function runs in a separate worker thread to ensure non-blocking operation.
  * @param {string|Buffer} input - Image file path or buffer containing image data
  * @returns {Promise<Object>} Promise resolving to an object containing:
  *   - defocusScore {number} - 0-100 score indicating defocus level
@@ -52,7 +53,8 @@ async function detectSabotage(input) {
 }
 
 /**
- * Detects significant changes between two consecutive frames.
+ * Asynchronously detects significant changes between two consecutive frames.
+ * The function runs in a separate worker thread to ensure non-blocking operation.
  * @param {string|Buffer} current - Current frame image path or buffer
  * @param {string|Buffer} previous - Previous frame image path or buffer
  * @returns {Promise<Object>} Promise resolving to an object containing:
